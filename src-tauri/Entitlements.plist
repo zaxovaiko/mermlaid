@@ -10,5 +10,13 @@
          the sandbox denies the write. Nothing else touches the filesystem. -->
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
+
+    <!-- Signed into the bundle so it matches the identifier in the provisioning
+         profile; without these the upload warns that the build is not eligible
+         for TestFlight (90886). -->
+    <key>com.apple.application-identifier</key>
+    <string>J9X92WZMA7.com.dyvertex.mermlaid</string>
+    <key>com.apple.developer.team-identifier</key>
+    <string>J9X92WZMA7</string>
 </dict>
 </plist>
