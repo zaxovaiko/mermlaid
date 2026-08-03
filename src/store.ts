@@ -2,13 +2,28 @@ import { load, type Store } from "@tauri-apps/plugin-store";
 
 export type ExportFormat = "png" | "jpg" | "svg";
 
+export interface HistoryEntry {
+  id: string;
+  code: string;
+  /** Timestamp of the last successful render of this entry, epoch ms. */
+  updatedAt: number;
+}
+
+export const HISTORY_LIMIT = 50;
+
 export interface PersistedState {
   code: string;
   autoRender: boolean;
   exportFormat: ExportFormat;
   exportScale: number;
   wrapLines: boolean;
+  /** Share of the split taken by the editor pane, 0..1. */
+  splitRatio: number;
+  history: HistoryEntry[];
 }
+
+export const MIN_SPLIT_RATIO = 0.12;
+export const MAX_SPLIT_RATIO = 0.88;
 
 const DEFAULT_STATE: PersistedState = {
   code: [
@@ -22,6 +37,8 @@ const DEFAULT_STATE: PersistedState = {
   exportFormat: "png",
   exportScale: 2,
   wrapLines: true,
+  splitRatio: 0.5,
+  history: [],
 };
 
 let storePromise: Promise<Store> | null = null;

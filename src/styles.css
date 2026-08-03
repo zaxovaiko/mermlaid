@@ -179,8 +179,143 @@ body[data-window="main"] #split {
 }
 
 #editor-pane {
-  flex: 1;
+  position: relative;
+  /* flex-basis is overwritten inline by the split drag; see main.ts */
+  flex: 0 0 50%;
   background: var(--glass-tint);
+}
+
+/* History popover — anchored to the bottom-left of the editor pane, just
+   above the toolbar button that opens it. */
+#history-panel {
+  position: absolute;
+  z-index: 5;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  max-width: 420px;
+  max-height: min(320px, 70%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border-strong);
+  background: var(--scrim);
+  backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+#history-panel.hidden {
+  display: none;
+}
+
+.history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--glass-border);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+}
+
+.text-btn {
+  padding: 3px 7px;
+  font-size: 11px;
+  color: var(--ink-400);
+}
+
+.text-btn:hover:not(:disabled) {
+  color: var(--accent-error);
+  background: var(--accent-error-wash);
+}
+
+.text-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+#history-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.history-item:hover {
+  background: var(--glass-hover);
+}
+
+.history-item[data-active="true"] .history-label {
+  color: var(--accent-node);
+}
+
+.history-open {
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.history-label,
+.history-meta {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-label {
+  font-size: 12px;
+}
+
+.history-meta {
+  font-size: 10px;
+  color: var(--ink-400);
+  font-family: var(--font-mono);
+}
+
+.history-remove {
+  padding: 4px 8px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--ink-400);
+  opacity: 0;
+}
+
+.history-item:hover .history-remove,
+.history-remove:focus-visible {
+  opacity: 1;
+}
+
+.history-remove:hover {
+  color: var(--accent-error);
+  background: var(--accent-error-wash);
+}
+
+#history-empty {
+  margin: 0;
+  padding: 18px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-400);
+}
+
+#history-empty.hidden {
+  display: none;
 }
 
 body[data-window="main"] #editor-pane {
@@ -191,11 +326,30 @@ body[data-window="main"] #editor-pane {
   flex: 1;
 }
 
-/* the seam: a hairline that carries a one-shot render pulse */
+/* the seam: a hairline that carries a one-shot render pulse, and doubles
+   as the drag handle that resizes the two panes */
 #seam {
   position: relative;
   flex-shrink: 0;
   background: var(--glass-border);
+  touch-action: none;
+}
+
+/* The visible line stays a hairline; this widens what the pointer can grab. */
+#seam::after {
+  content: "";
+  position: absolute;
+  inset: -4px 0;
+  cursor: row-resize;
+}
+
+body[data-window="main"] #seam::after {
+  inset: 0 -4px;
+  cursor: col-resize;
+}
+
+#seam[data-dragging="true"] {
+  background: var(--accent-edge);
 }
 
 body[data-window="popover"] #seam,

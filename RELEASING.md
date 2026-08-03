@@ -44,3 +44,37 @@ testing the build matrix without tagging.
   publish `latest.json` from the same workflow.
 - Pre-releases: tag `v0.2.0-rc.1` and flip `prerelease: true` in the workflow, or mark it in the
   GitHub UI before publishing.
+
+## Mac App Store
+
+App Store builds are sandboxed and signed with a different certificate than the direct downloads,
+so they use an overlay config: [`src-tauri/tauri.appstore.conf.json`](src-tauri/tauri.appstore.conf.json)
+plus [`src-tauri/Entitlements.plist`](src-tauri/Entitlements.plist).
+
+One-time setup (all of it behind your Apple Developer login):
+
+1. Register the App ID `com.dyvertex.mermlaid` in the Developer portal.
+2. Create an **Apple Distribution** certificate and a **Mac App Store Connect** provisioning
+   profile for that App ID; save the profile as `src-tauri/embedded.provisionprofile` (gitignored).
+3. Create the app record in App Store Connect using the same bundle ID.
+
+Building and uploading:
+
+```bash
+pnpm appstore                        # sandboxed .app signed for the store
+xcrun productbuild --sign "3rd Party Mac Developer Installer: <NAME> (<TEAM_ID>)" \
+  --component "src-tauri/target/release/bundle/macos/Mermlaid.app" /Applications \
+  Mermlaid.pkg
+xcrun altool --upload-app -f Mermlaid.pkg -t macos \
+  --apple-id "<APPLE_ID>" --password "<APP_SPECIFIC_PASSWORD>"
+```
+
+Then submit the build for review in App Store Connect.
+
+Notes:
+
+- The sandbox entitlements are deliberately minimal: sandbox on, plus user-selected read-write so
+  the Save… panel works. If a feature ever needs the network or broader file access, the
+  entitlement has to be added here *and* justified in review.
+- The direct-download build (`pnpm tauri build`) is unaffected — it stays unsandboxed and uses
+  Developer ID.

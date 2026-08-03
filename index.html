@@ -13,6 +13,14 @@
       <div id="split">
         <section id="editor-pane">
           <div id="editor-host"></div>
+          <div id="history-panel" class="hidden" role="dialog" aria-label="Diagram history">
+            <div class="history-head">
+              <span>History</span>
+              <button id="history-clear-btn" class="text-btn">Clear all</button>
+            </div>
+            <ul id="history-list"></ul>
+            <p id="history-empty">Diagrams you render show up here.</p>
+          </div>
           <div id="error-banner" class="hidden" role="alert"></div>
           <div class="toolbar" data-tauri-drag-region>
             <button id="expand-btn" class="icon-btn" title="Open in window" aria-label="Open in window">
@@ -34,6 +42,20 @@
                 <path d="M4 12h16" />
                 <path d="M4 18h10" />
                 <path d="M14 15l3 3-3 3" />
+              </svg>
+            </button>
+            <button
+              id="history-btn"
+              class="icon-btn"
+              title="History"
+              aria-label="Diagram history"
+              aria-haspopup="true"
+              aria-expanded="false"
+            >
+              <svg viewBox="0 0 24 24" class="icon">
+                <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+                <path d="M3 4v4h4" />
+                <path d="M12 7v5l3 2" />
               </svg>
             </button>
             <label class="auto-render">

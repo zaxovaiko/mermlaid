@@ -19,6 +19,10 @@ export class PanZoom {
   private readonly container: HTMLElement;
   private readonly target: HTMLElement;
   private onChange?: () => void;
+  /** Set once the user pans/zooms by hand. While false the view is still
+   * "auto", so it re-fits when the viewport resizes; once true, resizing
+   * leaves their framing alone. */
+  private userAdjusted = false;
 
   constructor(opts: PanZoomOptions) {
     this.container = opts.container;
@@ -26,6 +30,7 @@ export class PanZoom {
     this.minScale = opts.minScale ?? 0.05;
     this.maxScale = opts.maxScale ?? 10;
     this.bind();
+    this.observeResize();
   }
 
   onZoomChange(cb: () => void): void {
@@ -46,6 +51,7 @@ export class PanZoom {
 
     target.addEventListener("pointermove", (e) => {
       if (!this.dragging) return;
+      this.userAdjusted = true;
       this.x += e.clientX - this.lastX;
       this.y += e.clientY - this.lastY;
       this.lastX = e.clientX;
@@ -86,7 +92,21 @@ export class PanZoom {
     target.addEventListener("dblclick", () => this.fit());
   }
 
+  /** Keep the diagram framed when the viewer changes size — window resizes,
+   * fullscreen, and dragging the editor/preview divider all land here. */
+  private observeResize(): void {
+    let first = true;
+    new ResizeObserver(() => {
+      if (first) {
+        first = false;
+        return;
+      }
+      if (!this.userAdjusted) this.fit();
+    }).observe(this.container);
+  }
+
   private zoomAt(cx: number, cy: number, factor: number): void {
+    this.userAdjusted = true;
     const newScale = Math.min(this.maxScale, Math.max(this.minScale, this.scale * factor));
     const ratio = newScale / this.scale;
     this.x = cx - (cx - this.x) * ratio;
@@ -101,6 +121,7 @@ export class PanZoom {
   }
 
   reset(): void {
+    this.userAdjusted = true;
     this.scale = 1;
     this.centerContent();
   }
@@ -115,6 +136,7 @@ export class PanZoom {
   }
 
   fit(): void {
+    this.userAdjusted = false;
     const cRect = this.container.getBoundingClientRect();
     const w = this.target.scrollWidth;
     const h = this.target.scrollHeight;

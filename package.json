@@ -1,7 +1,7 @@
 {
   "name": "mermlaid",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A lightweight menubar Mermaid diagram renderer built with Tauri",
   "license": "MIT",
   "author": "zaxovaiko",
@@ -19,7 +19,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "appstore": "tauri build --config src-tauri/tauri.appstore.conf.json --bundles app"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.4",

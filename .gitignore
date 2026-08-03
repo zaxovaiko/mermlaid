@@ -26,3 +26,10 @@ dist-ssr
 # Local agent/tooling state
 .claude/
 CLAUDE.md
+
+# App Store signing artifacts — never commit these
+src-tauri/embedded.provisionprofile
+*.p12
+*.cer
+*.certSigningRequest
+*.pkg

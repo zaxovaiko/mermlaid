@@ -5,7 +5,8 @@ import { createEditor, setEditorValue, setLineWrapping } from "./editor";
 import { MermaidSyntaxError, normalizeSvgSize, onSystemThemeChange, renderMermaid } from "./render";
 import { PanZoom } from "./panzoom";
 import { copyRasterToClipboard, copySvgToClipboard, type ExportFormat, saveDiagramToFile } from "./export";
-import { loadState, saveState } from "./store";
+import { type HistoryEntry, loadState, MAX_SPLIT_RATIO, MIN_SPLIT_RATIO, saveState } from "./store";
+import { historyLabel, historySubtitle, recordHistory, relativeTime, removeHistoryEntry } from "./history";
 import "./styles.css";
 
 function debounce<Args extends unknown[]>(fn: (...args: Args) => void, delayMs: number) {
@@ -42,6 +43,14 @@ async function main() {
   const saveBtn = document.querySelector<HTMLButtonElement>("#save-btn")!;
   const expandBtn = document.querySelector<HTMLButtonElement>("#expand-btn")!;
   const wrapToggleBtn = document.querySelector<HTMLButtonElement>("#wrap-toggle-btn")!;
+  const historyBtn = document.querySelector<HTMLButtonElement>("#history-btn")!;
+  const historyPanel = document.querySelector<HTMLElement>("#history-panel")!;
+  const historyList = document.querySelector<HTMLUListElement>("#history-list")!;
+  const historyEmpty = document.querySelector<HTMLElement>("#history-empty")!;
+  const historyClearBtn = document.querySelector<HTMLButtonElement>("#history-clear-btn")!;
+  const split = document.querySelector<HTMLElement>("#split")!;
+  const seam = document.querySelector<HTMLElement>("#seam")!;
+  const editorPane = document.querySelector<HTMLElement>("#editor-pane")!;
   const seamPulse = document.querySelector<HTMLElement>("#seam-pulse")!;
   const toast = document.querySelector<HTMLElement>("#toast")!;
 
@@ -103,12 +112,143 @@ async function main() {
   }
   updateCopyAvailability();
 
+  // The split runs vertically in the popover and horizontally in the main
+  // window, so the drag axis follows whichever the current window uses.
+  const splitsHorizontally = () => windowLabel === "main";
+
+  function applySplitRatio(ratio: number) {
+    editorPane.style.flexBasis = `${ratio * 100}%`;
+  }
+  applySplitRatio(state.splitRatio);
+
+  seam.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    seam.setPointerCapture(e.pointerId);
+    seam.dataset.dragging = "true";
+
+    const onMove = (move: PointerEvent) => {
+      const rect = split.getBoundingClientRect();
+      const raw = splitsHorizontally()
+        ? (move.clientX - rect.left) / rect.width
+        : (move.clientY - rect.top) / rect.height;
+      applySplitRatio(Math.min(MAX_SPLIT_RATIO, Math.max(MIN_SPLIT_RATIO, raw)));
+    };
+
+    const onUp = () => {
+      seam.removeEventListener("pointermove", onMove);
+      seam.removeEventListener("pointerup", onUp);
+      seam.removeEventListener("pointercancel", onUp);
+      delete seam.dataset.dragging;
+      void saveState({ splitRatio: parseFloat(editorPane.style.flexBasis) / 100 });
+    };
+
+    seam.addEventListener("pointermove", onMove);
+    seam.addEventListener("pointerup", onUp);
+    seam.addEventListener("pointercancel", onUp);
+  });
+
+  seam.addEventListener("dblclick", () => {
+    applySplitRatio(0.5);
+    void saveState({ splitRatio: 0.5 });
+  });
+
   const panZoom = new PanZoom({ container: viewer, target: viewerSurface });
   panZoom.onZoomChange(() => {
     resetZoomBtn.textContent = `${panZoom.getScalePercent()}%`;
   });
 
   let hasRenderedOnce = false;
+
+  let history: HistoryEntry[] = state.history;
+  // Which entry the editor is currently "inside", so edits update that entry
+  // instead of appending a new one on every successful render.
+  let activeHistoryId: string | null = null;
+
+  function renderHistory() {
+    historyList.replaceChildren(
+      ...history.map((entry) => {
+        const item = document.createElement("li");
+        item.className = "history-item";
+        if (entry.id === activeHistoryId) item.dataset.active = "true";
+
+        const open = document.createElement("button");
+        open.className = "history-open";
+        open.title = "Load this diagram";
+
+        const label = document.createElement("span");
+        label.className = "history-label";
+        label.textContent = historyLabel(entry.code);
+
+        const meta = document.createElement("span");
+        meta.className = "history-meta";
+        meta.textContent = `${historySubtitle(entry.code)} · ${relativeTime(entry.updatedAt)}`;
+
+        open.append(label, meta);
+        open.addEventListener("click", () => {
+          activeHistoryId = entry.id;
+          setEditorValue(editor, entry.code);
+          void saveState({ code: entry.code });
+          void visualize(entry.code);
+          closeHistory();
+        });
+
+        const remove = document.createElement("button");
+        remove.className = "history-remove";
+        remove.title = "Remove from history";
+        remove.setAttribute("aria-label", `Remove ${historyLabel(entry.code)} from history`);
+        remove.textContent = "×";
+        remove.addEventListener("click", () => {
+          history = removeHistoryEntry(history, entry.id);
+          if (activeHistoryId === entry.id) activeHistoryId = null;
+          void saveState({ history });
+          renderHistory();
+        });
+
+        item.append(open, remove);
+        return item;
+      }),
+    );
+    historyEmpty.classList.toggle("hidden", history.length > 0);
+    historyClearBtn.disabled = history.length === 0;
+  }
+
+  function openHistory() {
+    renderHistory();
+    historyPanel.classList.remove("hidden");
+    historyBtn.setAttribute("aria-expanded", "true");
+  }
+
+  function closeHistory() {
+    historyPanel.classList.add("hidden");
+    historyBtn.setAttribute("aria-expanded", "false");
+  }
+
+  function isHistoryOpen() {
+    return !historyPanel.classList.contains("hidden");
+  }
+
+  historyBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (isHistoryOpen()) closeHistory();
+    else openHistory();
+  });
+
+  historyClearBtn.addEventListener("click", () => {
+    history = [];
+    activeHistoryId = null;
+    void saveState({ history });
+    renderHistory();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!isHistoryOpen()) return;
+    if (!historyPanel.contains(e.target as Node)) closeHistory();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && isHistoryOpen()) closeHistory();
+  });
 
   async function visualize(code: string) {
     setStatus("rendering");
@@ -124,6 +264,12 @@ async function main() {
       hasRenderedOnce = true;
       setStatus("success");
       fireSeamPulse();
+
+      const recorded = recordHistory(history, code, activeHistoryId);
+      history = recorded.history;
+      activeHistoryId = recorded.activeId;
+      void saveState({ history });
+      if (isHistoryOpen()) renderHistory();
     } catch (err) {
       if (err instanceof MermaidSyntaxError) {
         errorBanner.textContent = err.message;

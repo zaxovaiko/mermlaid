@@ -49,11 +49,18 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      # Unsigned builds: macOS users will need to allow the app in Gatekeeper.
-      # Add signing secrets here when they exist.
+      # macOS builds are signed with Developer ID and notarized when the
+      # secrets are present; without them the build still succeeds, unsigned.
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Mermlaid ${{ github.ref_name }}"
