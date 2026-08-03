@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mermlaid</title>
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+
+  <body>
+    <div id="app">
+      <div id="split">
+        <section id="editor-pane">
+          <div id="editor-host"></div>
+          <div id="error-banner" class="hidden" role="alert"></div>
+          <div class="toolbar" data-tauri-drag-region>
+            <button id="expand-btn" class="icon-btn" title="Open in window" aria-label="Open in window">
+              <svg viewBox="0 0 24 24" class="icon">
+                <path d="M14 4h6v6" />
+                <path d="M20 4 10 14" />
+                <path d="M6 6H4v14h14v-2" />
+              </svg>
+            </button>
+            <button
+              id="wrap-toggle-btn"
+              class="icon-btn"
+              title="Wrap lines"
+              aria-label="Toggle line wrapping"
+              aria-pressed="true"
+            >
+              <svg viewBox="0 0 24 24" class="icon">
+                <path d="M4 6h16" />
+                <path d="M4 12h16" />
+                <path d="M4 18h10" />
+                <path d="M14 15l3 3-3 3" />
+              </svg>
+            </button>
+            <label class="auto-render">
+              <input type="checkbox" id="auto-render-toggle" checked />
+              <span>Auto-render</span>
+            </label>
+            <button id="visualize-btn" class="primary-btn">
+              Visualize <kbd>&#8984;&#9166;</kbd>
+            </button>
+          </div>
+        </section>
+
+        <div id="seam" aria-hidden="true"><div id="seam-pulse"></div></div>
+
+        <section id="preview-pane">
+          <div class="toolbar">
+            <div class="btn-group">
+              <button id="fit-btn" class="icon-btn" title="Fit to screen" aria-label="Fit to screen">
+                <svg viewBox="0 0 24 24" class="icon">
+                  <path d="M3 8V4h4M17 4h4v4M21 16v4h-4M7 20H3v-4" />
+                </svg>
+              </button>
+              <button id="reset-zoom-btn" class="icon-btn zoom-readout" title="Reset zoom" aria-label="Reset zoom">
+                100%
+              </button>
+              <button id="fullscreen-btn" class="icon-btn" title="Fullscreen" aria-label="Fullscreen">
+                <svg viewBox="0 0 24 24" class="icon">
+                  <path d="M9 3H3v6" />
+                  <path d="M3 3l7 7" />
+                  <path d="M15 21h6v-6" />
+                  <path d="M21 21l-7-7" />
+                </svg>
+              </button>
+            </div>
+            <div class="spacer"></div>
+            <div class="btn-group">
+              <select id="export-format" title="Export format" aria-label="Export format">
+                <option value="png">PNG</option>
+                <option value="jpg">JPG</option>
+                <option value="svg">SVG</option>
+              </select>
+              <select id="export-scale" title="Export scale" aria-label="Export scale">
+                <option value="1">1x</option>
+                <option value="2" selected>2x</option>
+                <option value="3">3x</option>
+              </select>
+              <button id="copy-btn" class="icon-btn" title="Copy to clipboard">
+                <svg viewBox="0 0 24 24" class="icon">
+                  <rect x="8" y="8" width="12" height="12" rx="2" />
+                  <path d="M4 16V6a2 2 0 0 1 2-2h10" />
+                </svg>
+                Copy
+              </button>
+              <button id="save-btn" class="icon-btn" title="Save to file">
+                <svg viewBox="0 0 24 24" class="icon">
+                  <path d="M12 3v11" />
+                  <path d="M8 10l4 4 4-4" />
+                  <path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
+                </svg>
+                Save&hellip;
+              </button>
+            </div>
+          </div>
+          <div id="viewer">
+            <div id="toast" role="status" aria-live="polite"></div>
+            <div id="viewer-surface">
+              <div id="diagram" aria-live="polite"></div>
+            </div>
+            <div id="empty-state">
+              <svg viewBox="0 0 48 48" class="empty-icon" aria-hidden="true">
+                <rect x="6" y="8" width="16" height="11" rx="2.5" />
+                <rect x="26" y="8" width="16" height="11" rx="2.5" />
+                <rect x="16" y="30" width="16" height="11" rx="2.5" />
+                <path d="M22 19v6h12v-6" />
+                <path d="M24 25v5" />
+              </svg>
+              <p>Paste Mermaid code on the left and press <strong>Visualize</strong></p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>

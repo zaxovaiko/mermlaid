@@ -1,0 +1,557 @@
+@import "@fontsource/space-grotesk/500.css";
+@import "@fontsource/space-grotesk/700.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+
+:root {
+  color-scheme: dark;
+
+  /* canvas + glass */
+  --canvas-deep: #0b0e14;
+  --scrim: rgba(9, 11, 16, 0.6);
+  --glass-tint: rgba(255, 255, 255, 0.055);
+  --glass-hover: rgba(255, 255, 255, 0.07);
+  --glass-well: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --glass-border-strong: rgba(255, 255, 255, 0.14);
+  --glow-edge: rgba(139, 92, 246, 0.22);
+  --glow-node: rgba(110, 231, 183, 0.14);
+
+  /* ink */
+  --ink-100: #f3f6fa;
+  --ink-400: #8d96a6;
+
+  /* the two things a diagram is made of */
+  --accent-node: #6ee7b7; /* mint — state, success, "it rendered" */
+  --accent-node-fg: #06231a; /* text/icon color sitting on a mint fill */
+  --accent-node-dim: rgba(110, 231, 183, 0.35);
+  --accent-edge: #8b5cf6; /* violet — structure, focus, interaction */
+  --accent-edge-dim: rgba(139, 92, 246, 0.35);
+  --accent-error: #ff8a80;
+  --accent-error-wash: rgba(255, 138, 128, 0.1);
+  --accent-error-border: rgba(255, 138, 128, 0.25);
+  --accent-error-glow: rgba(255, 138, 128, 0.35);
+
+  /* editor overlays (selection, active line, bracket match) */
+  --overlay-weak: rgba(255, 255, 255, 0.035);
+  --overlay-selection: rgba(139, 92, 246, 0.28);
+  --overlay-bracket-bg: rgba(110, 231, 183, 0.18);
+  --overlay-bracket-outline: rgba(110, 231, 183, 0.4);
+
+  --font-display: "Space Grotesk", -apple-system, sans-serif;
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-lg: 16px;
+  --radius-md: 10px;
+  --radius-sm: 7px;
+}
+
+/* Auto light/dark: the palette flips with the OS, the mint/violet
+   identity and layout stay exactly the same. */
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+
+    --canvas-deep: #f4f5f8;
+    --scrim: rgba(255, 255, 255, 0.62);
+    --glass-tint: rgba(15, 23, 42, 0.04);
+    --glass-hover: rgba(15, 23, 42, 0.06);
+    --glass-well: rgba(15, 23, 42, 0.03);
+    --glass-border: rgba(15, 23, 42, 0.09);
+    --glass-border-strong: rgba(15, 23, 42, 0.16);
+    --glow-edge: rgba(124, 58, 237, 0.14);
+    --glow-node: rgba(5, 150, 105, 0.1);
+
+    --ink-100: #14171f;
+    --ink-400: #6b7280;
+
+    --accent-node: #059669;
+    --accent-node-fg: #ffffff;
+    --accent-node-dim: rgba(5, 150, 105, 0.22);
+    --accent-edge: #7c3aed;
+    --accent-edge-dim: rgba(124, 58, 237, 0.22);
+    --accent-error: #dc2626;
+    --accent-error-wash: rgba(220, 38, 38, 0.08);
+    --accent-error-border: rgba(220, 38, 38, 0.2);
+    --accent-error-glow: rgba(220, 38, 38, 0.25);
+
+    --overlay-weak: rgba(15, 23, 42, 0.045);
+    --overlay-selection: rgba(124, 58, 237, 0.16);
+    --overlay-bracket-bg: rgba(5, 150, 105, 0.14);
+    --overlay-bracket-outline: rgba(5, 150, 105, 0.35);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-ui);
+  color: var(--ink-100);
+  font-size: 13px;
+  user-select: none;
+}
+
+#app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  background: var(--canvas-deep);
+}
+
+/* The popover is a true floating glass panel: the OS window behind it is
+   transparent, so blurring it here reveals a frosted view of the desktop,
+   the same way Control Center or Spotlight sit over your wallpaper. The
+   docked main window is a normal opaque canvas — nothing meaningful sits
+   behind it, so it stays solid and lets its own glass cards carry the look.
+
+   On macOS the blur comes from a native NSVisualEffectView (applied in
+   Rust) so it stays correct across resizes; CSS just adds the tint on
+   top of it. Everywhere else there's no native effect to sit on top of,
+   so CSS backdrop-filter provides the blur itself. */
+body:not([data-window="main"]) #app {
+  background: var(--scrim);
+}
+
+body:not([data-window="main"]):not([data-platform="macos"]) #app {
+  backdrop-filter: blur(38px) saturate(165%);
+  -webkit-backdrop-filter: blur(38px) saturate(165%);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body:not([data-window="main"]) #app {
+    background: var(--canvas-deep);
+  }
+}
+
+#app::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 15% -10%, var(--glow-edge), transparent 55%),
+    radial-gradient(90% 70% at 100% 110%, var(--glow-node), transparent 60%);
+}
+
+body[data-window="main"] #app {
+  border-radius: 0;
+  border: none;
+}
+
+#split {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+body[data-window="main"] #split {
+  flex-direction: row;
+}
+
+#editor-pane,
+#preview-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+#editor-pane {
+  flex: 1;
+  background: var(--glass-tint);
+}
+
+body[data-window="main"] #editor-pane {
+  flex: 0 0 38%;
+}
+
+#preview-pane {
+  flex: 1;
+}
+
+/* the seam: a hairline that carries a one-shot render pulse */
+#seam {
+  position: relative;
+  flex-shrink: 0;
+  background: var(--glass-border);
+}
+
+body[data-window="popover"] #seam,
+body:not([data-window]) #seam {
+  height: 1px;
+}
+
+body[data-window="main"] #seam {
+  width: 1px;
+}
+
+#seam-pulse {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--accent-node), var(--accent-edge), transparent);
+  opacity: 0;
+}
+
+body[data-window="main"] #seam-pulse {
+  background: linear-gradient(180deg, transparent, var(--accent-node), var(--accent-edge), transparent);
+}
+
+#seam-pulse.firing {
+  animation: seam-sweep 0.85s ease-out;
+}
+
+@keyframes seam-sweep {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.05);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+body[data-window="main"] #seam-pulse.firing {
+  animation-name: seam-sweep-v;
+}
+
+@keyframes seam-sweep-v {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.05);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(1);
+  }
+}
+
+#editor-host {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 4px;
+}
+
+#editor-host .cm-editor {
+  height: 100%;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+#editor-host .cm-editor.cm-focused {
+  outline: none;
+}
+
+#error-banner {
+  padding: 7px 12px;
+  background: var(--accent-error-wash);
+  color: var(--accent-error);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.45;
+  max-height: 90px;
+  overflow-y: auto;
+  border-top: 1px solid var(--accent-error-border);
+  white-space: pre-wrap;
+}
+
+#error-banner.hidden {
+  display: none;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border-top: 1px solid var(--glass-border);
+  flex-shrink: 0;
+}
+
+#preview-pane > .toolbar {
+  border-top: none;
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-tint);
+}
+
+.toolbar .spacer {
+  flex: 1;
+}
+
+.btn-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  background: var(--glass-well);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+}
+
+.auto-render {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-400);
+  font-size: 12px;
+}
+
+.auto-render input[type="checkbox"] {
+  accent-color: var(--accent-edge);
+}
+
+.icon {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+button {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--ink-100);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 5px 9px;
+  cursor: pointer;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-group button {
+  border-radius: calc(var(--radius-md) - 3px);
+}
+
+button:hover {
+  background: var(--glass-hover);
+}
+
+button[aria-pressed="true"] {
+  background: var(--accent-edge-dim);
+  color: var(--accent-edge);
+}
+
+button[aria-pressed="true"]:hover {
+  background: var(--accent-edge-dim);
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+button:disabled:hover {
+  background: transparent;
+}
+
+button.icon-btn.zoom-readout {
+  font-variant-numeric: tabular-nums;
+  min-width: 44px;
+  justify-content: center;
+  color: var(--ink-400);
+}
+
+button.primary-btn {
+  background: var(--accent-node);
+  color: var(--accent-node-fg);
+  border-color: var(--accent-node);
+  margin-left: auto;
+  font-weight: 600;
+}
+
+button.primary-btn:hover {
+  filter: brightness(1.06);
+  background: var(--accent-node);
+}
+
+button.primary-btn kbd {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  opacity: 0.7;
+}
+
+#expand-btn {
+  color: var(--ink-400);
+}
+
+#expand-btn:hover {
+  color: var(--ink-100);
+}
+
+select {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--ink-100);
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius-md) - 3px);
+  padding: 5px 6px;
+}
+
+select:hover {
+  background: var(--glass-hover);
+}
+
+kbd {
+  font-family: var(--font-mono);
+}
+
+#viewer {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--canvas-deep);
+  background-image: radial-gradient(var(--glass-border) 1px, transparent 1px);
+  background-size: 22px 22px;
+  background-position: -3px -3px;
+}
+
+#viewer-surface {
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: grab;
+  transform-origin: 0 0;
+}
+
+#toast {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 2;
+  transform: translate(-50%, -6px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border-strong);
+  background: var(--scrim);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  color: var(--ink-100);
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  #toast {
+    background: var(--canvas-deep);
+  }
+}
+
+#toast::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-node);
+  flex-shrink: 0;
+}
+
+#toast[data-kind="error"]::before {
+  background: var(--accent-error);
+}
+
+#toast.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+#viewer-surface.grabbing {
+  cursor: grabbing;
+}
+
+#viewer:fullscreen {
+  background-color: var(--canvas-deep);
+}
+
+#diagram svg {
+  display: block;
+  max-width: none !important;
+}
+
+#empty-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--ink-400);
+  font-size: 12.5px;
+  pointer-events: none;
+  text-align: center;
+  padding: 0 32px;
+}
+
+#empty-state.hidden {
+  display: none;
+}
+
+#empty-state strong {
+  color: var(--ink-100);
+  font-weight: 600;
+}
+
+.empty-icon {
+  width: 44px;
+  height: 44px;
+  fill: none;
+  stroke: var(--accent-edge);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.55;
+}
+
+.empty-icon path {
+  stroke: var(--accent-node);
+}
