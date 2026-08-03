@@ -1,0 +1,133 @@
+:root {
+  --canvas: #0b0e14;
+  --panel: rgba(255, 255, 255, 0.04);
+  --border: rgba(255, 255, 255, 0.1);
+  --ink: #f3f6fa;
+  --ink-dim: #8d96a6;
+  --node: #6ee7b7;
+  --edge: #8b5cf6;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --canvas: #f4f5f8;
+    --panel: rgba(0, 0, 0, 0.03);
+    --border: rgba(0, 0, 0, 0.1);
+    --ink: #14171f;
+    --ink-dim: #5b6373;
+    --node: #059669;
+    --edge: #7c3aed;
+    color-scheme: light;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 48px 20px 72px;
+  background:
+    radial-gradient(120% 90% at 15% -10%, rgba(139, 92, 246, 0.16), transparent 55%),
+    radial-gradient(90% 70% at 100% 110%, rgba(110, 231, 183, 0.1), transparent 60%),
+    var(--canvas);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+main {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+header.site {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+
+header.site .mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--edge);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 700;
+}
+
+header.site a {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+h1 {
+  font-size: 30px;
+  line-height: 1.2;
+  margin: 0 0 8px;
+}
+
+h2 {
+  font-size: 18px;
+  margin: 32px 0 8px;
+}
+
+.lede {
+  color: var(--ink-dim);
+  font-size: 18px;
+  margin-top: 0;
+}
+
+.updated {
+  color: var(--ink-dim);
+  font-size: 13px;
+  margin-top: 0;
+}
+
+a {
+  color: var(--node);
+}
+
+ul {
+  padding-left: 20px;
+}
+
+li {
+  margin: 6px 0;
+}
+
+.card {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin: 24px 0;
+}
+
+kbd {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 1px 6px;
+}
+
+nav.foot {
+  margin-top: 56px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--ink-dim);
+}
