@@ -55,11 +55,7 @@ header.site .mark {
   width: 34px;
   height: 34px;
   border-radius: 9px;
-  background: var(--edge);
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-weight: 700;
+  display: block;
 }
 
 header.site a {
