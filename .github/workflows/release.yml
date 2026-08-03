@@ -24,6 +24,10 @@ jobs:
             args: ""
 
     runs-on: ${{ matrix.platform }}
+    # The secrets context is not available in a step `if`, so the check is
+    # hoisted to a job-level env var, where it is.
+    env:
+      HAS_APPLE_CERT: ${{ secrets.APPLE_CERTIFICATE != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -54,7 +58,7 @@ jobs:
       # exported once the secret actually exists. Until then macOS builds are
       # unsigned and users have to allow the app through Gatekeeper.
       - name: Enable macOS signing and notarization
-        if: startsWith(matrix.platform, 'macos') && secrets.APPLE_CERTIFICATE != ''
+        if: startsWith(matrix.platform, 'macos') && env.HAS_APPLE_CERT == 'true'
         run: |
           {
             echo "APPLE_CERTIFICATE=${{ secrets.APPLE_CERTIFICATE }}"
