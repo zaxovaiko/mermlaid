@@ -5,11 +5,21 @@ import { Image as TauriImage } from "@tauri-apps/api/image";
 
 export type ExportFormat = "png" | "jpg" | "svg";
 
-export function serializeSvgElement(svgEl: SVGSVGElement): string {
+export function serializeSvgElement(svgEl: SVGSVGElement, background?: string | null): string {
   const clone = svgEl.cloneNode(true) as SVGSVGElement;
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   if (!clone.getAttribute("xmlns:xlink")) {
     clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+  }
+  if (background) {
+    // Behind everything else, so the diagram keeps its own layering.
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect.setAttribute("x", "0");
+    rect.setAttribute("y", "0");
+    rect.setAttribute("width", "100%");
+    rect.setAttribute("height", "100%");
+    rect.setAttribute("fill", background);
+    clone.insertBefore(rect, clone.firstChild);
   }
   const serialized = new XMLSerializer().serializeToString(clone);
   return `<?xml version="1.0" encoding="UTF-8"?>\n${serialized}`;
@@ -40,7 +50,7 @@ function svgToDataUrl(svgString: string): Promise<string> {
 async function rasterizeToCanvas(
   svgEl: SVGSVGElement,
   scale: number,
-  opts: { whiteBackground?: boolean } = {},
+  opts: { background?: string | null } = {},
 ): Promise<HTMLCanvasElement> {
   const { width, height } = getSvgPixelSize(svgEl);
   const svgString = serializeSvgElement(svgEl);
@@ -59,8 +69,8 @@ async function rasterizeToCanvas(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas rendering is not supported");
 
-  if (opts.whiteBackground) {
-    ctx.fillStyle = "#ffffff";
+  if (opts.background) {
+    ctx.fillStyle = opts.background;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -82,7 +92,7 @@ function canvasToBlob(canvas: HTMLCanvasElement, mime: string): Promise<Blob> {
 export async function copyRasterToClipboard(
   svgEl: SVGSVGElement,
   scale: number,
-  opts: { whiteBackground?: boolean } = {},
+  opts: { background?: string | null } = {},
 ): Promise<void> {
   const canvas = await rasterizeToCanvas(svgEl, scale, opts);
   const ctx = canvas.getContext("2d");
@@ -96,8 +106,8 @@ export async function copyRasterToClipboard(
   await clipboardWriteImage(image);
 }
 
-export async function copySvgToClipboard(svgEl: SVGSVGElement): Promise<void> {
-  await clipboardWriteText(serializeSvgElement(svgEl));
+export async function copySvgToClipboard(svgEl: SVGSVGElement, background?: string | null): Promise<void> {
+  await clipboardWriteText(serializeSvgElement(svgEl, background));
 }
 
 const FILTERS: Record<ExportFormat, { name: string; extensions: string[] }> = {
@@ -110,6 +120,7 @@ export async function saveDiagramToFile(
   svgEl: SVGSVGElement,
   format: ExportFormat,
   scale: number,
+  background?: string | null,
 ): Promise<string | null> {
   const path = await save({
     defaultPath: `diagram.${format}`,
@@ -118,9 +129,12 @@ export async function saveDiagramToFile(
   if (!path) return null;
 
   if (format === "svg") {
-    await writeTextFile(path, serializeSvgElement(svgEl));
+    await writeTextFile(path, serializeSvgElement(svgEl, background));
   } else {
-    const canvas = await rasterizeToCanvas(svgEl, scale, { whiteBackground: format === "jpg" });
+    // JPEG has no alpha, so it always needs something opaque behind it.
+    const canvas = await rasterizeToCanvas(svgEl, scale, {
+      background: background ?? (format === "jpg" ? "#ffffff" : null),
+    });
     const blob = await canvasToBlob(canvas, format === "jpg" ? "image/jpeg" : "image/png");
     await writeFile(path, new Uint8Array(await blob.arrayBuffer()));
   }

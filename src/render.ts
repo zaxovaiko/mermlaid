@@ -2,7 +2,20 @@ import mermaid from "mermaid";
 
 export class MermaidSyntaxError extends Error {}
 
+/** "system" follows the OS appearance with the app's own violet/mint palette;
+ * the rest are fixed choices, with forest and neutral coming from Mermaid. */
+export type DiagramTheme = "system" | "light" | "dark" | "forest" | "neutral";
+
+export const DIAGRAM_THEMES: { value: DiagramTheme; label: string }[] = [
+  { value: "system", label: "System" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "forest", label: "Forest" },
+  { value: "neutral", label: "Neutral" },
+];
+
 let renderCounter = 0;
+let initializedTheme: DiagramTheme | null = null;
 let initializedMode: "dark" | "light" | null = null;
 
 const darkThemeVariables = {
@@ -99,16 +112,50 @@ function systemMode(): "dark" | "light" {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-function ensureInitialized() {
+/** The canvas colour a diagram is designed to sit on — used when exporting
+ * or copying with a background, and to tint the preview surface. */
+export function diagramBackground(theme: DiagramTheme): string {
+  switch (theme) {
+    case "dark":
+      return "#0B0E14";
+    case "light":
+    case "neutral":
+      return "#FFFFFF";
+    case "forest":
+      return "#F4FBF6";
+    case "system":
+      return systemMode() === "dark" ? "#0B0E14" : "#FFFFFF";
+  }
+}
+
+const FONT_FAMILY = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
+
+function ensureInitialized(theme: DiagramTheme) {
   const mode = systemMode();
-  if (initializedMode === mode) return;
-  mermaid.initialize({
-    startOnLoad: false,
-    securityLevel: "strict",
-    theme: "base",
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-    themeVariables: mode === "dark" ? darkThemeVariables : lightThemeVariables,
-  });
+  // The system theme is the only one that has to track the OS, so it is also
+  // the only one that needs re-initializing when the appearance flips.
+  if (initializedTheme === theme && (theme !== "system" || initializedMode === mode)) return;
+
+  if (theme === "forest" || theme === "neutral") {
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme,
+      fontFamily: FONT_FAMILY,
+      themeVariables: { fontSize: "14px", background: "transparent" },
+    });
+  } else {
+    const dark = theme === "dark" || (theme === "system" && mode === "dark");
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: "base",
+      fontFamily: FONT_FAMILY,
+      themeVariables: dark ? darkThemeVariables : lightThemeVariables,
+    });
+  }
+
+  initializedTheme = theme;
   initializedMode = mode;
 }
 
@@ -116,8 +163,8 @@ export interface RenderResult {
   svg: string;
 }
 
-export async function renderMermaid(code: string): Promise<RenderResult> {
-  ensureInitialized();
+export async function renderMermaid(code: string, theme: DiagramTheme = "system"): Promise<RenderResult> {
+  ensureInitialized(theme);
 
   const trimmed = code.trim();
   if (!trimmed) {

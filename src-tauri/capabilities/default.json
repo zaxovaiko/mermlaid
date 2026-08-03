@@ -16,6 +16,11 @@
     "store:allow-load",
     "store:allow-get",
     "store:allow-set",
-    "store:allow-save"
+    "store:allow-save",
+    "core:app:allow-version",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://apps.apple.com/*" }, { "url": "https://dyvertex.com/*" }]
+    }
   ]
 }

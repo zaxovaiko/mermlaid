@@ -2,7 +2,7 @@ use tauri::{
     image::Image,
     menu::MenuBuilder,
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    App, AppHandle, Manager, WindowEvent,
+    App, AppHandle, Emitter, Manager, WindowEvent,
 };
 
 #[cfg(desktop)]
@@ -36,6 +36,8 @@ pub fn setup(app: &App) -> tauri::Result<()> {
     let menu = MenuBuilder::new(app)
         .text("open_window", "Open Window")
         .separator()
+        .text("about", "About Mermlaid")
+        .separator()
         .text("quit", "Quit Mermlaid")
         .build()?;
 
@@ -46,6 +48,10 @@ pub fn setup(app: &App) -> tauri::Result<()> {
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {
             "open_window" => open_main_window(app),
+            "about" => {
+                open_main_window(app);
+                let _ = app.emit("mermlaid://show-about", ());
+            }
             "quit" => app.exit(0),
             _ => {}
         })

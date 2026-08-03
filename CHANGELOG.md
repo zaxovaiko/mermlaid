@@ -6,6 +6,20 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.3.0]
+
+### Added
+
+- Diagram theme picker: System, Light, Dark, Forest and Neutral.
+- A background toggle — copies and exports can carry the theme's background colour
+  instead of being transparent.
+- An About panel showing the current version, with links to the App Store listing and
+  dyvertex.com. Also reachable from the tray menu.
+
+### Changed
+
+- Copy and Save are icon-only; their labels moved to tooltips.
+
 ## [0.2.0]
 
 ### Added

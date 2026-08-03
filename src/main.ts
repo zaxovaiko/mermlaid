@@ -1,8 +1,18 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getVersion } from "@tauri-apps/api/app";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { createEditor, setEditorValue, setLineWrapping } from "./editor";
-import { MermaidSyntaxError, normalizeSvgSize, onSystemThemeChange, renderMermaid } from "./render";
+import {
+  type DiagramTheme,
+  DIAGRAM_THEMES,
+  diagramBackground,
+  MermaidSyntaxError,
+  normalizeSvgSize,
+  onSystemThemeChange,
+  renderMermaid,
+} from "./render";
 import { PanZoom } from "./panzoom";
 import { copyRasterToClipboard, copySvgToClipboard, type ExportFormat, saveDiagramToFile } from "./export";
 import { type HistoryEntry, loadState, MAX_SPLIT_RATIO, MIN_SPLIT_RATIO, saveState } from "./store";
@@ -39,10 +49,17 @@ async function main() {
   const fullscreenBtn = document.querySelector<HTMLButtonElement>("#fullscreen-btn")!;
   const formatSelect = document.querySelector<HTMLSelectElement>("#export-format")!;
   const scaleSelect = document.querySelector<HTMLSelectElement>("#export-scale")!;
+  const themeSelect = document.querySelector<HTMLSelectElement>("#theme-select")!;
+  const backgroundBtn = document.querySelector<HTMLButtonElement>("#background-btn")!;
   const copyBtn = document.querySelector<HTMLButtonElement>("#copy-btn")!;
   const saveBtn = document.querySelector<HTMLButtonElement>("#save-btn")!;
   const expandBtn = document.querySelector<HTMLButtonElement>("#expand-btn")!;
   const wrapToggleBtn = document.querySelector<HTMLButtonElement>("#wrap-toggle-btn")!;
+  const aboutBtn = document.querySelector<HTMLButtonElement>("#about-btn")!;
+  const aboutPanel = document.querySelector<HTMLElement>("#about-panel")!;
+  const aboutVersion = document.querySelector<HTMLElement>("#about-version")!;
+  const aboutUpdateBtn = document.querySelector<HTMLButtonElement>("#about-update-btn")!;
+  const aboutSiteBtn = document.querySelector<HTMLButtonElement>("#about-site-btn")!;
   const historyBtn = document.querySelector<HTMLButtonElement>("#history-btn")!;
   const historyPanel = document.querySelector<HTMLElement>("#history-panel")!;
   const historyList = document.querySelector<HTMLUListElement>("#history-list")!;
@@ -111,6 +128,36 @@ async function main() {
         : "Copy to clipboard";
   }
   updateCopyAvailability();
+
+  themeSelect.replaceChildren(
+    ...DIAGRAM_THEMES.map(({ value, label }) => new Option(label, value)),
+  );
+  themeSelect.value = state.diagramTheme;
+
+  function currentTheme(): DiagramTheme {
+    return themeSelect.value as DiagramTheme;
+  }
+
+  function backgroundEnabled(): boolean {
+    return backgroundBtn.getAttribute("aria-pressed") === "true";
+  }
+
+  /** The colour to paint behind the diagram, or null to keep it transparent. */
+  function exportBackgroundColor(): string | null {
+    return backgroundEnabled() ? diagramBackground(currentTheme()) : null;
+  }
+
+  function updateBackgroundButton(enabled: boolean) {
+    backgroundBtn.setAttribute("aria-pressed", String(enabled));
+    backgroundBtn.title = enabled ? "Background included" : "Background transparent";
+  }
+  updateBackgroundButton(state.exportBackground);
+
+  /** Tints the preview canvas so what you see matches what gets exported. */
+  function applyPreviewBackground() {
+    viewer.style.backgroundColor = diagramBackground(currentTheme());
+  }
+  applyPreviewBackground();
 
   // The split runs vertically in the popover and horizontally in the main
   // window, so the drag axis follows whichever the current window uses.
@@ -228,8 +275,31 @@ async function main() {
     return !historyPanel.classList.contains("hidden");
   }
 
+  // Updates are deliberately not polled: the app makes no network requests,
+  // and App Store builds must be updated through the App Store itself.
+  const APP_STORE_URL = "https://apps.apple.com/app/id6797646690";
+  const SITE_URL = "https://dyvertex.com/";
+
+  void getVersion().then((version) => {
+    aboutVersion.textContent = `Version ${version}`;
+  });
+
+  function closeAbout() {
+    aboutPanel.classList.add("hidden");
+  }
+
+  aboutBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeHistory();
+    aboutPanel.classList.toggle("hidden");
+  });
+
+  aboutUpdateBtn.addEventListener("click", () => void openUrl(APP_STORE_URL));
+  aboutSiteBtn.addEventListener("click", () => void openUrl(SITE_URL));
+
   historyBtn.addEventListener("click", (e) => {
     e.stopPropagation();
+    closeAbout();
     if (isHistoryOpen()) closeHistory();
     else openHistory();
   });
@@ -242,18 +312,21 @@ async function main() {
   });
 
   document.addEventListener("click", (e) => {
-    if (!isHistoryOpen()) return;
-    if (!historyPanel.contains(e.target as Node)) closeHistory();
+    const target = e.target as Node;
+    if (isHistoryOpen() && !historyPanel.contains(target)) closeHistory();
+    if (!aboutPanel.classList.contains("hidden") && !aboutPanel.contains(target)) closeAbout();
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && isHistoryOpen()) closeHistory();
+    if (e.key !== "Escape") return;
+    if (isHistoryOpen()) closeHistory();
+    closeAbout();
   });
 
   async function visualize(code: string) {
     setStatus("rendering");
     try {
-      const { svg } = await renderMermaid(code);
+      const { svg } = await renderMermaid(code, currentTheme());
       diagramHost.innerHTML = svg;
       const svgEl = diagramHost.querySelector("svg");
       if (svgEl) normalizeSvgSize(svgEl);
@@ -344,16 +417,30 @@ async function main() {
     void saveState({ exportScale: currentScale() });
   });
 
+  themeSelect.addEventListener("change", () => {
+    void saveState({ diagramTheme: currentTheme() });
+    applyPreviewBackground();
+    void visualize(editor.state.doc.toString());
+  });
+
+  backgroundBtn.addEventListener("click", () => {
+    const enabled = !backgroundEnabled();
+    updateBackgroundButton(enabled);
+    void saveState({ exportBackground: enabled });
+  });
+
   copyBtn.addEventListener("click", async () => {
     const svgEl = diagramHost.querySelector<SVGSVGElement>("svg");
     if (!svgEl) return;
     const format = currentFormat();
     try {
       if (format === "svg") {
-        await copySvgToClipboard(svgEl);
+        await copySvgToClipboard(svgEl, exportBackgroundColor());
         showToast("SVG copied to clipboard");
       } else {
-        await copyRasterToClipboard(svgEl, currentScale(), { whiteBackground: format === "jpg" });
+        await copyRasterToClipboard(svgEl, currentScale(), {
+          background: exportBackgroundColor() ?? (format === "jpg" ? "#ffffff" : null),
+        });
         showToast("Image copied to clipboard");
       }
     } catch (err) {
@@ -366,7 +453,7 @@ async function main() {
     const svgEl = diagramHost.querySelector<SVGSVGElement>("svg");
     if (!svgEl) return;
     try {
-      const path = await saveDiagramToFile(svgEl, currentFormat(), currentScale());
+      const path = await saveDiagramToFile(svgEl, currentFormat(), currentScale(), exportBackgroundColor());
       if (path) showToast(`Saved ${path.split("/").pop()}`);
     } catch (err) {
       console.error("Save failed", err);
@@ -379,7 +466,13 @@ async function main() {
   });
 
   onSystemThemeChange(() => {
+    applyPreviewBackground();
     if (hasRenderedOnce) void visualize(editor.state.doc.toString());
+  });
+
+  await listen("mermlaid://show-about", () => {
+    closeHistory();
+    aboutPanel.classList.remove("hidden");
   });
 
   await listen<string>("mermlaid://code-sync", (event) => {

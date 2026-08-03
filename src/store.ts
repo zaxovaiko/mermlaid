@@ -1,4 +1,5 @@
 import { load, type Store } from "@tauri-apps/plugin-store";
+import type { DiagramTheme } from "./render";
 
 export type ExportFormat = "png" | "jpg" | "svg";
 
@@ -17,6 +18,10 @@ export interface PersistedState {
   exportFormat: ExportFormat;
   exportScale: number;
   wrapLines: boolean;
+  diagramTheme: DiagramTheme;
+  /** Whether copies and exports carry the theme's background instead of
+   * being transparent. */
+  exportBackground: boolean;
   /** Share of the split taken by the editor pane, 0..1. */
   splitRatio: number;
   history: HistoryEntry[];
@@ -37,6 +42,8 @@ const DEFAULT_STATE: PersistedState = {
   exportFormat: "png",
   exportScale: 2,
   wrapLines: true,
+  diagramTheme: "system",
+  exportBackground: false,
   splitRatio: 0.5,
   history: [],
 };

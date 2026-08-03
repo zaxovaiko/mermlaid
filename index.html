@@ -13,6 +13,15 @@
       <div id="split">
         <section id="editor-pane">
           <div id="editor-host"></div>
+          <div id="about-panel" class="hidden" role="dialog" aria-label="About Mermlaid">
+            <h2>Mermlaid</h2>
+            <p id="about-version">Version —</p>
+            <p class="about-tagline">Mermaid diagrams, one shortcut away.</p>
+            <div class="about-links">
+              <button id="about-update-btn" class="text-btn">Check for updates</button>
+              <button id="about-site-btn" class="text-btn">dyvertex.com</button>
+            </div>
+          </div>
           <div id="history-panel" class="hidden" role="dialog" aria-label="Diagram history">
             <div class="history-head">
               <span>History</span>
@@ -42,6 +51,13 @@
                 <path d="M4 12h16" />
                 <path d="M4 18h10" />
                 <path d="M14 15l3 3-3 3" />
+              </svg>
+            </button>
+            <button id="about-btn" class="icon-btn" title="About Mermlaid" aria-label="About Mermlaid" aria-haspopup="true">
+              <svg viewBox="0 0 24 24" class="icon">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 11v5" />
+                <path d="M12 8h.01" />
               </svg>
             </button>
             <button
@@ -92,6 +108,21 @@
             </div>
             <div class="spacer"></div>
             <div class="btn-group">
+              <select id="theme-select" title="Diagram theme" aria-label="Diagram theme"></select>
+              <button
+                id="background-btn"
+                class="icon-btn"
+                title="Include background"
+                aria-label="Include background in copies and exports"
+                aria-pressed="false"
+              >
+                <svg viewBox="0 0 24 24" class="icon">
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <path d="M3 15l5-5 4 4 3-3 6 6" />
+                </svg>
+              </button>
+            </div>
+            <div class="btn-group">
               <select id="export-format" title="Export format" aria-label="Export format">
                 <option value="png">PNG</option>
                 <option value="jpg">JPG</option>
@@ -102,20 +133,18 @@
                 <option value="2" selected>2x</option>
                 <option value="3">3x</option>
               </select>
-              <button id="copy-btn" class="icon-btn" title="Copy to clipboard">
+              <button id="copy-btn" class="icon-btn" title="Copy to clipboard" aria-label="Copy to clipboard">
                 <svg viewBox="0 0 24 24" class="icon">
                   <rect x="8" y="8" width="12" height="12" rx="2" />
                   <path d="M4 16V6a2 2 0 0 1 2-2h10" />
                 </svg>
-                Copy
               </button>
-              <button id="save-btn" class="icon-btn" title="Save to file">
+              <button id="save-btn" class="icon-btn" title="Save to file" aria-label="Save to file">
                 <svg viewBox="0 0 24 24" class="icon">
                   <path d="M12 3v11" />
                   <path d="M8 10l4 4 4-4" />
                   <path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
                 </svg>
-                Save&hellip;
               </button>
             </div>
           </div>
