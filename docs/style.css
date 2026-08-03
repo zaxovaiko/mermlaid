@@ -26,13 +26,27 @@
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  padding: 48px 20px 72px;
+html {
+  min-height: 100%;
+  /* The gradients live here so they cover the viewport even on short pages,
+     instead of ending where the content does. */
   background:
     radial-gradient(120% 90% at 15% -10%, rgba(139, 92, 246, 0.16), transparent 55%),
     radial-gradient(90% 70% at 100% 110%, rgba(110, 231, 183, 0.1), transparent 60%),
     var(--canvas);
+  background-attachment: fixed;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: 48px 20px 56px;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(120% 90% at 15% -10%, rgba(139, 92, 246, 0.16), transparent 55%),
+    radial-gradient(90% 70% at 100% 110%, rgba(110, 231, 183, 0.1), transparent 60%),
+    transparent;
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-size: 16px;
@@ -40,8 +54,14 @@ body {
 }
 
 main {
+  width: 100%;
   max-width: 680px;
   margin: 0 auto;
+  /* Pushes the footer to the bottom on short pages, so the rule above it
+     never floats mid-screen with empty space beneath. */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 header.site {
@@ -118,7 +138,7 @@ kbd {
 }
 
 nav.foot {
-  margin-top: 56px;
+  margin-top: auto;
   padding-top: 20px;
   border-top: 1px solid var(--border);
   display: flex;
