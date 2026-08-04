@@ -1,7 +1,6 @@
 import { load, type Store } from "@tauri-apps/plugin-store";
+import type { ExportFormat } from "./export";
 import type { DiagramTheme } from "./render";
-
-export type ExportFormat = "png" | "jpg" | "svg";
 
 export interface HistoryEntry {
   id: string;
@@ -49,6 +48,10 @@ const DEFAULT_STATE: PersistedState = {
 };
 
 let storePromise: Promise<Store> | null = null;
+/** The last state written, kept in memory so a patch never has to read the
+ * store back — two patches issued before either write settles would otherwise
+ * both merge onto the same stale snapshot and the first one would be lost. */
+let currentState: PersistedState = DEFAULT_STATE;
 
 function getStore(): Promise<Store> {
   if (!storePromise) {
@@ -60,11 +63,12 @@ function getStore(): Promise<Store> {
 export async function loadState(): Promise<PersistedState> {
   const store = await getStore();
   const saved = await store.get<Partial<PersistedState>>("state");
-  return { ...DEFAULT_STATE, ...saved };
+  currentState = { ...DEFAULT_STATE, ...saved };
+  return currentState;
 }
 
 export async function saveState(patch: Partial<PersistedState>): Promise<void> {
+  currentState = { ...currentState, ...patch };
   const store = await getStore();
-  const current = (await store.get<Partial<PersistedState>>("state")) ?? {};
-  await store.set("state", { ...DEFAULT_STATE, ...current, ...patch });
+  await store.set("state", currentState);
 }

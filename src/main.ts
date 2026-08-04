@@ -15,8 +15,10 @@ import {
 } from "./render";
 import { PanZoom } from "./panzoom";
 import { copyRasterToClipboard, copySvgToClipboard, type ExportFormat, saveDiagramToFile } from "./export";
-import { type HistoryEntry, loadState, MAX_SPLIT_RATIO, MIN_SPLIT_RATIO, saveState } from "./store";
-import { historyLabel, historySubtitle, recordHistory, relativeTime, removeHistoryEntry } from "./history";
+import { loadState, saveState } from "./store";
+import { recordHistory } from "./history";
+import { createHistoryPanel } from "./historyPanel";
+import { createSplitPane } from "./splitPane";
 import "./styles.css";
 
 function debounce<Args extends unknown[]>(fn: (...args: Args) => void, delayMs: number) {
@@ -61,7 +63,7 @@ async function main() {
   const aboutUpdateBtn = document.querySelector<HTMLButtonElement>("#about-update-btn")!;
   const aboutSiteBtn = document.querySelector<HTMLButtonElement>("#about-site-btn")!;
   const historyBtn = document.querySelector<HTMLButtonElement>("#history-btn")!;
-  const historyPanel = document.querySelector<HTMLElement>("#history-panel")!;
+  const historyPanelEl = document.querySelector<HTMLElement>("#history-panel")!;
   const historyList = document.querySelector<HTMLUListElement>("#history-list")!;
   const historyEmpty = document.querySelector<HTMLElement>("#history-empty")!;
   const historyClearBtn = document.querySelector<HTMLButtonElement>("#history-clear-btn")!;
@@ -159,46 +161,16 @@ async function main() {
   }
   applyPreviewBackground();
 
-  // The split runs vertically in the popover and horizontally in the main
-  // window, so the drag axis follows whichever the current window uses.
-  const splitsHorizontally = () => windowLabel === "main";
-
-  function applySplitRatio(ratio: number) {
-    editorPane.style.flexBasis = `${ratio * 100}%`;
-  }
+  const applySplitRatio = createSplitPane({
+    split,
+    seam,
+    pane: editorPane,
+    // The split runs vertically in the popover and horizontally in the main
+    // window, so the drag axis follows whichever the current window uses.
+    horizontal: () => windowLabel === "main",
+    onCommit: (ratio) => void saveState({ splitRatio: ratio }),
+  });
   applySplitRatio(state.splitRatio);
-
-  seam.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    seam.setPointerCapture(e.pointerId);
-    seam.dataset.dragging = "true";
-
-    const onMove = (move: PointerEvent) => {
-      const rect = split.getBoundingClientRect();
-      const raw = splitsHorizontally()
-        ? (move.clientX - rect.left) / rect.width
-        : (move.clientY - rect.top) / rect.height;
-      applySplitRatio(Math.min(MAX_SPLIT_RATIO, Math.max(MIN_SPLIT_RATIO, raw)));
-    };
-
-    const onUp = () => {
-      seam.removeEventListener("pointermove", onMove);
-      seam.removeEventListener("pointerup", onUp);
-      seam.removeEventListener("pointercancel", onUp);
-      delete seam.dataset.dragging;
-      void saveState({ splitRatio: parseFloat(editorPane.style.flexBasis) / 100 });
-    };
-
-    seam.addEventListener("pointermove", onMove);
-    seam.addEventListener("pointerup", onUp);
-    seam.addEventListener("pointercancel", onUp);
-  });
-
-  seam.addEventListener("dblclick", () => {
-    applySplitRatio(0.5);
-    void saveState({ splitRatio: 0.5 });
-  });
 
   const panZoom = new PanZoom({ container: viewer, target: viewerSurface });
   panZoom.onZoomChange(() => {
@@ -207,73 +179,30 @@ async function main() {
 
   let hasRenderedOnce = false;
 
-  let history: HistoryEntry[] = state.history;
+  let history = state.history;
   // Which entry the editor is currently "inside", so edits update that entry
   // instead of appending a new one on every successful render.
   let activeHistoryId: string | null = null;
 
-  function renderHistory() {
-    historyList.replaceChildren(
-      ...history.map((entry) => {
-        const item = document.createElement("li");
-        item.className = "history-item";
-        if (entry.id === activeHistoryId) item.dataset.active = "true";
-
-        const open = document.createElement("button");
-        open.className = "history-open";
-        open.title = "Load this diagram";
-
-        const label = document.createElement("span");
-        label.className = "history-label";
-        label.textContent = historyLabel(entry.code);
-
-        const meta = document.createElement("span");
-        meta.className = "history-meta";
-        meta.textContent = `${historySubtitle(entry.code)} · ${relativeTime(entry.updatedAt)}`;
-
-        open.append(label, meta);
-        open.addEventListener("click", () => {
-          activeHistoryId = entry.id;
-          setEditorValue(editor, entry.code);
-          void saveState({ code: entry.code });
-          void visualize(entry.code);
-          closeHistory();
-        });
-
-        const remove = document.createElement("button");
-        remove.className = "history-remove";
-        remove.title = "Remove from history";
-        remove.setAttribute("aria-label", `Remove ${historyLabel(entry.code)} from history`);
-        remove.textContent = "×";
-        remove.addEventListener("click", () => {
-          history = removeHistoryEntry(history, entry.id);
-          if (activeHistoryId === entry.id) activeHistoryId = null;
-          void saveState({ history });
-          renderHistory();
-        });
-
-        item.append(open, remove);
-        return item;
-      }),
-    );
-    historyEmpty.classList.toggle("hidden", history.length > 0);
-    historyClearBtn.disabled = history.length === 0;
-  }
-
-  function openHistory() {
-    renderHistory();
-    historyPanel.classList.remove("hidden");
-    historyBtn.setAttribute("aria-expanded", "true");
-  }
-
-  function closeHistory() {
-    historyPanel.classList.add("hidden");
-    historyBtn.setAttribute("aria-expanded", "false");
-  }
-
-  function isHistoryOpen() {
-    return !historyPanel.classList.contains("hidden");
-  }
+  const historyPanel = createHistoryPanel({
+    panel: historyPanelEl,
+    list: historyList,
+    empty: historyEmpty,
+    clearBtn: historyClearBtn,
+    toggleBtn: historyBtn,
+    onOpen: (entry) => {
+      activeHistoryId = entry.id;
+      setEditorValue(editor, entry.code);
+      void saveState({ code: entry.code });
+      void visualize(entry.code);
+    },
+    onChange: (next, nextActiveId) => {
+      history = next;
+      activeHistoryId = nextActiveId;
+      void saveState({ history });
+    },
+  });
+  historyPanel.setHistory(history);
 
   // Updates are deliberately not polled: the app makes no network requests,
   // and App Store builds must be updated through the App Store itself.
@@ -290,7 +219,7 @@ async function main() {
 
   aboutBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    closeHistory();
+    historyPanel.close();
     aboutPanel.classList.toggle("hidden");
   });
 
@@ -300,26 +229,18 @@ async function main() {
   historyBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     closeAbout();
-    if (isHistoryOpen()) closeHistory();
-    else openHistory();
-  });
-
-  historyClearBtn.addEventListener("click", () => {
-    history = [];
-    activeHistoryId = null;
-    void saveState({ history });
-    renderHistory();
+    historyPanel.toggle();
   });
 
   document.addEventListener("click", (e) => {
     const target = e.target as Node;
-    if (isHistoryOpen() && !historyPanel.contains(target)) closeHistory();
+    if (historyPanel.isOpen() && !historyPanelEl.contains(target)) historyPanel.close();
     if (!aboutPanel.classList.contains("hidden") && !aboutPanel.contains(target)) closeAbout();
   });
 
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
-    if (isHistoryOpen()) closeHistory();
+    if (historyPanel.isOpen()) historyPanel.close();
     closeAbout();
   });
 
@@ -341,8 +262,10 @@ async function main() {
       const recorded = recordHistory(history, code, activeHistoryId);
       history = recorded.history;
       activeHistoryId = recorded.activeId;
+      historyPanel.setHistory(history);
+      historyPanel.setActiveId(activeHistoryId);
       void saveState({ history });
-      if (isHistoryOpen()) renderHistory();
+      historyPanel.refresh();
     } catch (err) {
       if (err instanceof MermaidSyntaxError) {
         errorBanner.textContent = err.message;
@@ -471,7 +394,7 @@ async function main() {
   });
 
   await listen("mermlaid://show-about", () => {
-    closeHistory();
+    historyPanel.close();
     aboutPanel.classList.remove("hidden");
   });
 

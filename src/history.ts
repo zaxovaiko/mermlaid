@@ -48,9 +48,9 @@ export function recordHistory(
   code: string,
   activeId: string | null,
   now = Date.now(),
-): { history: HistoryEntry[]; activeId: string } {
+): { history: HistoryEntry[]; activeId: string | null } {
   const trimmed = code.trim();
-  if (!trimmed) return { history, activeId: activeId ?? "" };
+  if (!trimmed) return { history, activeId };
 
   const identical = history.find((entry) => entry.code.trim() === trimmed);
   const target = identical ?? (activeId ? history.find((entry) => entry.id === activeId) : undefined);
