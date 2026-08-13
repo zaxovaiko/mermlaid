@@ -152,9 +152,69 @@ body:not([data-window="main"]):not([data-platform="macos"]) #app {
     radial-gradient(90% 70% at 100% 110%, var(--glow-node), transparent 60%);
 }
 
-body[data-window="main"] #app {
-  border-radius: 0;
-  border: none;
+/* Custom titlebar: only the main window has native decorations turned off
+   (see tauri.conf.json). The popover is borderless too, but it has no
+   close/minimize/zoom of its own — it just hides on blur — so it gets no
+   titlebar at all. */
+#titlebar {
+  display: none;
+}
+
+body[data-window="main"] #titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-tint);
+}
+
+.traffic-lights {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tl {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  opacity: 0.85;
+}
+
+.tl:hover {
+  opacity: 1;
+}
+
+.tl:active {
+  transform: scale(0.92);
+}
+
+.tl-close {
+  background: var(--accent-error);
+}
+
+.tl-min {
+  background: #f5b544;
+}
+
+.tl-zoom {
+  background: var(--accent-node);
+}
+
+.titlebar-title {
+  flex: 1;
+  text-align: center;
+  margin-right: 28px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-400);
+  user-select: none;
 }
 
 #split {

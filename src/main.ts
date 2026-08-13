@@ -388,6 +388,13 @@ async function main() {
     await invoke("expand_to_main", { code: editor.state.doc.toString() });
   });
 
+  if (windowLabel === "main") {
+    const win = getCurrentWindow();
+    document.querySelector<HTMLButtonElement>("#tl-close")!.addEventListener("click", () => win.close());
+    document.querySelector<HTMLButtonElement>("#tl-min")!.addEventListener("click", () => win.minimize());
+    document.querySelector<HTMLButtonElement>("#tl-zoom")!.addEventListener("click", () => win.toggleMaximize());
+  }
+
   onSystemThemeChange(() => {
     applyPreviewBackground();
     if (hasRenderedOnce) void visualize(editor.state.doc.toString());

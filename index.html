@@ -10,6 +10,14 @@
 
   <body>
     <div id="app">
+      <div id="titlebar" data-tauri-drag-region>
+        <div class="traffic-lights">
+          <button id="tl-close" class="tl tl-close" aria-label="Close"></button>
+          <button id="tl-min" class="tl tl-min" aria-label="Minimize"></button>
+          <button id="tl-zoom" class="tl tl-zoom" aria-label="Zoom"></button>
+        </div>
+        <span class="titlebar-title" data-tauri-drag-region>Mermlaid</span>
+      </div>
       <div id="split">
         <section id="editor-pane">
           <div id="editor-host"></div>
