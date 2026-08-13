@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.3.1]
+
+### Fixed
+
+- Mac App Store build: the sandboxed WKWebView content process was missing the
+  `com.apple.security.network.client` entitlement, so it was killed by the sandbox
+  moments after every launch and the window stayed permanently blank (App Store
+  review Guideline 2.1(a)).
+
 ## [0.3.0]
 
 ### Added

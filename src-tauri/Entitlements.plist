@@ -11,6 +11,16 @@
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
 
+    <!-- WKWebView's WebContent XPC helper needs this even though the app itself
+         never makes a network request: without it, the sandbox kills every
+         WebContent process moments after spawn (crash-looped, ~10s apart),
+         so the window stays permanently blank. This is what App Store review
+         hit under Guideline 2.1(a) — confirmed locally by signing with the
+         sandbox entitlements and watching WebContent crash-loop until this
+         key was added. -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+
     <!-- Signed into the bundle so it matches the identifier in the provisioning
          profile; without these the upload warns that the build is not eligible
          for TestFlight (90886). -->
