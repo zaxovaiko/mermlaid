@@ -8,6 +8,13 @@ Hit a global shortcut, type Mermaid in the popover, watch the diagram render liv
   <img src="docs/screenshots/popover.png" alt="The Mermlaid popover hanging from the macOS menubar, with the editor on top and the preview below" width="560">
 </p>
 
+
+<p align="center"><a href="https://apps.apple.com/us/app/mermlaid/id6797646690">
+  <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
+       alt="Download on the App Store"
+       width="180">
+</a></p>
+
 ## Features
 
 - Tray / menubar popover, summoned with <kbd>Cmd/Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>
