@@ -9,7 +9,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![commands::expand_to_main])
+        .invoke_handler(tauri::generate_handler![
+            commands::expand_to_main,
+            commands::set_hotkey
+        ])
         .setup(|app| {
             tray::setup(app)?;
             Ok(())

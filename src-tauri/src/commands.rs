@@ -10,3 +10,8 @@ pub fn expand_to_main(app: AppHandle, code: String) -> Result<(), String> {
     crate::tray::open_main_window(&app);
     Ok(())
 }
+
+#[tauri::command]
+pub fn set_hotkey(app: AppHandle, hotkey: String) -> Result<(), String> {
+    crate::tray::set_hotkey(&app, hotkey)
+}

@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+
 use tauri::{
     image::Image,
     menu::MenuBuilder,
@@ -9,6 +11,9 @@ use tauri::{
 use tauri_plugin_positioner::{Position, WindowExt};
 
 const TRAY_ICON_BYTES: &[u8] = include_bytes!("../icons/tray-icon.png");
+pub(crate) const DEFAULT_HOTKEY: &str = "CmdOrCtrl+Shift+M";
+
+struct HotkeyState(Mutex<Option<String>>);
 
 pub fn setup(app: &App) -> tauri::Result<()> {
     #[cfg(target_os = "macos")]
@@ -28,9 +33,10 @@ pub fn setup(app: &App) -> tauri::Result<()> {
                 })
                 .build(),
         )?;
-        app.global_shortcut()
-            .register("CmdOrCtrl+Shift+M")
-            .map_err(|e| tauri::Error::Anyhow(anyhow::anyhow!(e)))?;
+        app.manage(HotkeyState(Mutex::new(None)));
+        if app.global_shortcut().register(DEFAULT_HOTKEY).is_ok() {
+            *app.state::<HotkeyState>().0.lock().unwrap() = Some(DEFAULT_HOTKEY.into());
+        }
     }
 
     let menu = MenuBuilder::new(app)
@@ -106,6 +112,33 @@ pub fn setup(app: &App) -> tauri::Result<()> {
                 let _ = app_handle.set_dock_visibility(false);
             }
         });
+    }
+
+    Ok(())
+}
+
+pub(crate) fn set_hotkey(app: &AppHandle, hotkey: String) -> Result<(), String> {
+    let hotkey = hotkey.trim().to_owned();
+    if hotkey.is_empty() {
+        return Err("Choose a shortcut with Command or Control.".into());
+    }
+
+    #[cfg(desktop)]
+    {
+        use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+        let state = app.state::<HotkeyState>();
+        let mut current = state.0.lock().map_err(|_| "Hotkey state is unavailable.")?;
+        if current.as_deref() == Some(hotkey.as_str()) {
+            return Ok(());
+        }
+
+        app.global_shortcut()
+            .register(hotkey.as_str())
+            .map_err(|error| format!("Could not register {hotkey}: {error}"))?;
+        if let Some(previous) = current.replace(hotkey) {
+            let _ = app.global_shortcut().unregister(previous.as_str());
+        }
     }
 
     Ok(())

@@ -1,6 +1,6 @@
 [package]
 name = "mermlaid"
-version = "0.3.1"
+version = "0.3.2"
 description = "A lightweight menubar Mermaid diagram renderer"
 authors = ["zaxovaiko"]
 license = "MIT"
@@ -36,4 +36,3 @@ tauri-plugin-positioner = { version = "2", features = ["tray-icon"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 window-vibrancy = "0.6"
-

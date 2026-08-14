@@ -44,8 +44,6 @@ async function main() {
   const emptyState = document.querySelector<HTMLElement>("#empty-state")!;
   const viewer = document.querySelector<HTMLElement>("#viewer")!;
   const viewerSurface = document.querySelector<HTMLElement>("#viewer-surface")!;
-  const autoRenderToggle = document.querySelector<HTMLInputElement>("#auto-render-toggle")!;
-  const visualizeBtn = document.querySelector<HTMLButtonElement>("#visualize-btn")!;
   const fitBtn = document.querySelector<HTMLButtonElement>("#fit-btn")!;
   const resetZoomBtn = document.querySelector<HTMLButtonElement>("#reset-zoom-btn")!;
   const fullscreenBtn = document.querySelector<HTMLButtonElement>("#fullscreen-btn")!;
@@ -60,6 +58,8 @@ async function main() {
   const aboutBtn = document.querySelector<HTMLButtonElement>("#about-btn")!;
   const aboutPanel = document.querySelector<HTMLElement>("#about-panel")!;
   const aboutVersion = document.querySelector<HTMLElement>("#about-version")!;
+  const hotkeyInput = document.querySelector<HTMLButtonElement>("#hotkey-input")!;
+  const hotkeyStatus = document.querySelector<HTMLElement>("#hotkey-status")!;
   const aboutUpdateBtn = document.querySelector<HTMLButtonElement>("#about-update-btn")!;
   const aboutSiteBtn = document.querySelector<HTMLButtonElement>("#about-site-btn")!;
   const historyBtn = document.querySelector<HTMLButtonElement>("#history-btn")!;
@@ -104,7 +104,27 @@ async function main() {
     toastTimer = setTimeout(() => toast.classList.remove("visible"), 1800);
   }
 
-  autoRenderToggle.checked = state.autoRender;
+  function hotkeyLabel(part: string): string {
+    const mac = navigator.platform.toLowerCase().includes("mac");
+    return {
+      CmdOrCtrl: mac ? "⌘" : "Ctrl",
+      Alt: mac ? "⌥" : "Alt",
+      Shift: mac ? "⇧" : "Shift",
+    }[part] ?? part;
+  }
+
+  function renderHotkey(hotkey: string) {
+    hotkeyInput.replaceChildren(
+      ...hotkey.split("+").map((part) => {
+        const key = document.createElement("kbd");
+        key.textContent = hotkeyLabel(part);
+        return key;
+      }),
+    );
+    hotkeyInput.setAttribute("aria-label", `Global shortcut ${hotkey}`);
+  }
+  let recordingHotkey = false;
+  renderHotkey(state.hotkey);
   formatSelect.value = state.exportFormat;
   scaleSelect.value = String(state.exportScale);
 
@@ -217,11 +237,68 @@ async function main() {
     aboutPanel.classList.add("hidden");
   }
 
+  function hotkeyFromEvent(event: KeyboardEvent): string | null {
+    if (["Meta", "Control", "Alt", "Shift"].includes(event.key)) return null;
+    if (!event.metaKey && !event.ctrlKey) return null;
+    const key = event.key.length === 1 ? event.key.toUpperCase() : event.key;
+    return [
+      "CmdOrCtrl",
+      ...(event.altKey ? ["Alt"] : []),
+      ...(event.shiftKey ? ["Shift"] : []),
+      key,
+    ].join("+");
+  }
+
+  async function updateHotkey(hotkey: string, notify = false) {
+    try {
+      await invoke("set_hotkey", { hotkey });
+      recordingHotkey = false;
+      delete hotkeyInput.dataset.recording;
+      renderHotkey(hotkey);
+      hotkeyStatus.textContent = "Shortcut saved.";
+      hotkeyStatus.dataset.error = "false";
+      await saveState({ hotkey });
+      if (notify) showToast("Shortcut changed");
+    } catch (error) {
+      recordingHotkey = false;
+      delete hotkeyInput.dataset.recording;
+      hotkeyStatus.textContent = `${error instanceof Error ? error.message : String(error)} Previous shortcut is still active.`;
+      hotkeyStatus.dataset.error = "true";
+    }
+  }
+
+  function startHotkeyRecording() {
+    if (recordingHotkey) return;
+    recordingHotkey = true;
+    hotkeyInput.dataset.recording = "true";
+    hotkeyStatus.textContent = "Press a new shortcut. Esc cancels.";
+    hotkeyStatus.dataset.error = "false";
+    hotkeyInput.focus();
+  }
+
   aboutBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     historyPanel.close();
     aboutPanel.classList.toggle("hidden");
   });
+
+  document.addEventListener("keydown", (event) => {
+    if (!recordingHotkey) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      recordingHotkey = false;
+      delete hotkeyInput.dataset.recording;
+      hotkeyStatus.textContent = "Shortcut unchanged.";
+      return;
+    }
+    const hotkey = hotkeyFromEvent(event);
+    if (!hotkey) return;
+    event.preventDefault();
+    event.stopPropagation();
+    void updateHotkey(hotkey, true);
+  });
+  hotkeyInput.addEventListener("click", startHotkeyRecording);
 
   aboutUpdateBtn.addEventListener("click", () => void openUrl(APP_STORE_URL));
   aboutSiteBtn.addEventListener("click", () => void openUrl(SITE_URL));
@@ -278,9 +355,7 @@ async function main() {
     }
   }
 
-  const debouncedAutoRender = debounce((code: string) => {
-    if (autoRenderToggle.checked) void visualize(code);
-  }, 350);
+  const debouncedAutoRender = debounce((code: string) => void visualize(code), 350);
 
   const editor = createEditor(editorHost, {
     doc: state.code,
@@ -289,21 +364,13 @@ async function main() {
       void saveState({ code: value });
       debouncedAutoRender(value);
     },
-    onSubmit: () => void visualize(editor.state.doc.toString()),
   });
-
-  visualizeBtn.addEventListener("click", () => visualize(editor.state.doc.toString()));
 
   wrapToggleBtn.addEventListener("click", () => {
     const wrap = wrapToggleBtn.getAttribute("aria-pressed") !== "true";
     updateWrapButton(wrap);
     setLineWrapping(editor, wrap);
     void saveState({ wrapLines: wrap });
-  });
-
-  autoRenderToggle.addEventListener("change", () => {
-    void saveState({ autoRender: autoRenderToggle.checked });
-    if (autoRenderToggle.checked) void visualize(editor.state.doc.toString());
   });
 
   fitBtn.addEventListener("click", () => panZoom.fit());
@@ -410,6 +477,8 @@ async function main() {
     void saveState({ code: event.payload });
     void visualize(event.payload);
   });
+
+  void updateHotkey(state.hotkey);
 
   if (state.code.trim()) {
     void visualize(state.code);

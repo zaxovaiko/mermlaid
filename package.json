@@ -1,7 +1,7 @@
 {
   "name": "mermlaid",
   "private": true,
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "A lightweight menubar Mermaid diagram renderer built with Tauri",
   "license": "MIT",
   "author": "zaxovaiko",
@@ -28,7 +28,6 @@
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.7",
     "@fontsource/inter": "^5.3.0",
-    "@fontsource/jetbrains-mono": "^5.3.0",
     "@fontsource/space-grotesk": "^5.3.0",
     "@lezer/highlight": "^1.2.3",
     "@tauri-apps/api": "^2",

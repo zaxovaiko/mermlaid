@@ -25,6 +25,11 @@
             <h2>Mermlaid</h2>
             <p id="about-version">Version —</p>
             <p class="about-tagline">Mermaid diagrams, one shortcut away.</p>
+            <label class="hotkey-setting" for="hotkey-input">
+              <span>Global shortcut</span>
+              <button id="hotkey-input" type="button" aria-describedby="hotkey-status"></button>
+            </label>
+            <p id="hotkey-status" class="hotkey-status">Click to record a new shortcut.</p>
             <div class="about-links">
               <button id="about-update-btn" class="text-btn">Check for updates</button>
               <button id="about-site-btn" class="text-btn">dyvertex.com</button>
@@ -81,13 +86,6 @@
                 <path d="M3 4v4h4" />
                 <path d="M12 7v5l3 2" />
               </svg>
-            </button>
-            <label class="auto-render">
-              <input type="checkbox" id="auto-render-toggle" checked />
-              <span>Auto-render</span>
-            </label>
-            <button id="visualize-btn" class="primary-btn">
-              Visualize <kbd>&#8984;&#9166;</kbd>
             </button>
           </div>
         </section>
@@ -157,7 +155,6 @@
             </div>
           </div>
           <div id="viewer">
-            <div id="toast" role="status" aria-live="polite"></div>
             <div id="viewer-surface">
               <div id="diagram" aria-live="polite"></div>
             </div>
@@ -174,6 +171,7 @@
           </div>
         </section>
       </div>
+      <div id="toast" role="status" aria-live="polite"></div>
     </div>
   </body>
 </html>

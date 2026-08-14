@@ -13,7 +13,7 @@ export const HISTORY_LIMIT = 50;
 
 export interface PersistedState {
   code: string;
-  autoRender: boolean;
+  hotkey: string;
   exportFormat: ExportFormat;
   exportScale: number;
   wrapLines: boolean;
@@ -37,7 +37,7 @@ const DEFAULT_STATE: PersistedState = {
     "    B -- No --> D[Debug]",
     "    D --> B",
   ].join("\n"),
-  autoRender: true,
+  hotkey: "CmdOrCtrl+Shift+M",
   exportFormat: "png",
   exportScale: 2,
   wrapLines: true,

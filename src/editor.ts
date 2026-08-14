@@ -64,7 +64,6 @@ export interface EditorOptions {
   doc: string;
   wrap: boolean;
   onChange: (value: string) => void;
-  onSubmit: () => void;
 }
 
 export function createEditor(host: HTMLElement, opts: EditorOptions): EditorView {
@@ -87,13 +86,6 @@ export function createEditor(host: HTMLElement, opts: EditorOptions): EditorView
         indentUnit.of("  "),
         wrapCompartment.of(opts.wrap ? [EditorView.lineWrapping] : []),
         keymap.of([
-          {
-            key: "Mod-Enter",
-            run: () => {
-              opts.onSubmit();
-              return true;
-            },
-          },
           ...defaultKeymap,
           ...historyKeymap,
           indentWithTab,

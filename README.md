@@ -1,13 +1,14 @@
 # Mermlaid
 
-A lightweight menubar [Mermaid](https://mermaid.js.org/) diagram renderer for the desktop, built with [Tauri 2](https://tauri.app/) and vanilla TypeScript.
+**Turn Mermaid your agents write into diagrams you can actually inspect.**
 
-Hit a global shortcut, type Mermaid in the popover, watch the diagram render live, and copy or save it — without leaving what you were doing.
+Claude and Codex are great at generating Mermaid. Mermlaid is the focused Mac app that makes the result visible instantly: open it from the menu bar, paste the code, inspect the flow, then export it without leaving your work.
+
+[Download on the Mac App Store](https://apps.apple.com/us/app/mermlaid/id6797646690?mt=12) · [Open the web editor](https://mermlaid.dyvertex.com/) · [View source](https://github.com/zaxovaiko/mermlaid)
 
 <p align="center">
   <img src="docs/screenshots/popover.png" alt="The Mermlaid popover hanging from the macOS menubar, with the editor on top and the preview below" width="560">
 </p>
-
 
 <p align="center"><a href="https://apps.apple.com/us/app/mermlaid/id6797646690">
   <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
@@ -15,22 +16,40 @@ Hit a global shortcut, type Mermaid in the popover, watch the diagram render liv
        width="180">
 </a></p>
 
-## Features
+## 🧩 Make state diagrams readable
+
+State diagrams are where generated Mermaid becomes most useful. Instead of reviewing a wall of transitions in a chat response, use Mermlaid to see every state, retry path, and terminal state at once.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Draft
+  Draft --> Review: submit
+  Review --> Approved: approve
+  Review --> Draft: changes requested
+  Approved --> [*]
+```
+
+Use it for approval flows, onboarding, async jobs, payments, and any system where the edge cases live in the transitions.
+
+## ⚡ Features
 
 - Tray / menubar popover, summoned with <kbd>Cmd/Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>
-- Live rendering as you type, plus an explicit <kbd>Cmd</kbd>+<kbd>Enter</kbd> visualize when auto-render is off
+- Live rendering as you type
 - CodeMirror 6 editor with Mermaid syntax highlighting and toggleable line wrapping
 - Pan and zoom the preview, fit to screen, reset zoom, fullscreen
 - Copy the diagram to the clipboard as a bitmap or as SVG text
 - Save as PNG, JPG or SVG at 1x / 2x / 3x scale
 - Expand the popover into a full window, carrying the current code across
 - Follows the system light/dark theme; code and settings persist between launches
+- Great for flowcharts, sequence diagrams, architecture maps, and state machines
 
-## Install
+## ⌘ Install
 
-No prebuilt binaries are published yet — build from source (below). Once tagged, builds will be attached to the [releases page](https://github.com/zaxovaiko/mermlaid/releases).
+Install [Mermlaid from the Mac App Store](https://apps.apple.com/us/app/mermlaid/id6797646690?mt=12), or use the [web editor](https://mermlaid.dyvertex.com/) for a quick diagram without installing anything.
 
-## Development
+Mermlaid is open source under the [MIT License](LICENSE). Build from source below if you want to contribute or adapt it to your workflow.
+
+## 🛠 Development
 
 Prerequisites:
 
@@ -52,7 +71,7 @@ cargo fmt --manifest-path src-tauri/Cargo.toml --check
 cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
 ```
 
-## Project layout
+## 🗂 Project layout
 
 | Path                 | What lives there                                              |
 | -------------------- | ------------------------------------------------------------- |
@@ -66,10 +85,10 @@ cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
 | `src/store.ts`       | Persisted settings                                             |
 | `src-tauri/src/`     | Rust side: tray, global shortcut, window management, commands  |
 
-## Contributing
+## 🤝 Contributing
 
 Bug reports, feature ideas and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md). Security issues: see [SECURITY.md](SECURITY.md).
 
-## License
+## 📄 License
 
 [MIT](LICENSE) © zaxovaiko
